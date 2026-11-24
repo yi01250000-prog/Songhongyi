@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+
+# 运行时生成
+data/uploads/
+*.csv
+!docs/**/*.csv
+*.log.bak
+
+# 编辑器 / 系统
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
