@@ -931,6 +931,13 @@ tbody tr:last-child td {
   font-size: 12px;
 }
 
+.rule-table th:first-child,
+.rule-table td:first-child,
+.rule-table th:last-child,
+.rule-table td:last-child {
+  white-space: nowrap;
+}
+
 .rule-table td {
   color: var(--text-2);
 }
