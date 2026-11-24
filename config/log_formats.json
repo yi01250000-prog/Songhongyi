@@ -1,0 +1,20 @@
+{
+  "time_format": "%d/%b/%Y:%H:%M:%S %z",
+  "formats": [
+    {
+      "name": "combined",
+      "label": "Nginx / Apache combined（标准格式）",
+      "pattern": "^(?P<ip>\\S+) \\S+ \\S+ \\[(?P<time>[^\\]]+)\\] \"(?P<request>[^\"]*)\" (?P<status>\\d{3}) (?P<bytes>\\S+) \"(?P<referer>[^\"]*)\" \"(?P<ua>[^\"]*)\"\\s*$"
+    },
+    {
+      "name": "timed_combined",
+      "label": "combined + 请求耗时 / X-Forwarded-For（自定义格式）",
+      "pattern": "^(?P<ip>\\S+) \\S+ \\S+ \\[(?P<time>[^\\]]+)\\] \"(?P<request>[^\"]*)\" (?P<status>\\d{3}) (?P<bytes>\\S+) \"(?P<referer>[^\"]*)\" \"(?P<ua>[^\"]*)\" rt=(?P<rt>[0-9.]+) xff=(?P<xff>.+?)\\s*$"
+    },
+    {
+      "name": "common",
+      "label": "Nginx / Apache common（精简格式，无 Referer / UA）",
+      "pattern": "^(?P<ip>\\S+) \\S+ \\S+ \\[(?P<time>[^\\]]+)\\] \"(?P<request>[^\"]*)\" (?P<status>\\d{3}) (?P<bytes>\\S+)\\s*$"
+    }
+  ]
+}
