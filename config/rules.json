@@ -1,0 +1,239 @@
+{
+  "version": "1.0",
+  "description": "网站访问日志异常检测规则库：修改本文件后调用 POST /api/rules/reload 即可热加载，无需改动代码。",
+  "categories": {
+    "sql_injection": "SQL 注入",
+    "path_traversal": "路径遍历",
+    "sensitive_path": "敏感路径探测",
+    "command_injection": "命令注入",
+    "xss": "跨站脚本",
+    "file_inclusion": "文件包含",
+    "webshell": "WebShell 探测",
+    "bad_ua": "可疑 User-Agent",
+    "high_frequency": "高频访问",
+    "error_rate": "错误率异常",
+    "scan": "扫描行为",
+    "bruteforce": "暴力破解",
+    "server_error": "5xx 突增"
+  },
+  "rules": [
+    {
+      "id": "SQLI-001",
+      "name": "SQL 注入：联合查询",
+      "category": "sql_injection",
+      "type": "path_pattern",
+      "pattern": "union[\\s/**/+]+(?:(?:all|distinct)[\\s/**/+]+)?select",
+      "level": "high",
+      "mitre": "T1190",
+      "description": "URL 中出现 UNION SELECT（兼容 /**/ 注释、+ 与 %20 空格变形），是注入拖库的经典起手式。"
+    },
+    {
+      "id": "SQLI-002",
+      "name": "SQL 注入：恒真条件",
+      "category": "sql_injection",
+      "type": "path_pattern",
+      "pattern": "(\\bor\\b|\\band\\b)[\\s+/*'\"]*\\d+[\\s+/*'\"]*=[\\s+/*'\"]*\\d+",
+      "level": "high",
+      "mitre": "T1190",
+      "description": "出现 OR/AND 1=1 之类的恒真条件，常用于绕过登录判断。"
+    },
+    {
+      "id": "SQLI-003",
+      "name": "SQL 注入：引号闭合",
+      "category": "sql_injection",
+      "type": "path_pattern",
+      "pattern": "(%27|')+\\s*(or|and)\\b",
+      "level": "medium",
+      "mitre": "T1190",
+      "description": "单引号（含 %27 编码）后紧跟 OR/AND，试图闭合 SQL 字符串。"
+    },
+    {
+      "id": "SQLI-004",
+      "name": "SQL 注入：时间盲注",
+      "category": "sql_injection",
+      "type": "path_pattern",
+      "pattern": "(sleep|benchmark|pg_sleep|waitfor\\s+delay|dbms_pipe\\.receive_message)\\s*\\(",
+      "level": "high",
+      "mitre": "T1190",
+      "description": "SLEEP()/BENCHMARK() 等延时函数，攻击者靠响应时间判断注入结果。"
+    },
+    {
+      "id": "SQLI-005",
+      "name": "SQL 注入：元数据探测",
+      "category": "sql_injection",
+      "type": "path_pattern",
+      "pattern": "information_schema|load_file\\s*\\(|into\\s+(out|dump)file",
+      "level": "high",
+      "mitre": "T1190",
+      "description": "访问 information_schema 或使用文件读写函数，属于拖库与写文件的典型特征。"
+    },
+    {
+      "id": "TRAV-001",
+      "name": "路径遍历：目录穿越",
+      "category": "path_traversal",
+      "type": "path_pattern",
+      "pattern": "(\\.\\./|\\.\\.\\\\|%2e%2e%2f|%2e%2e%5c|\\.\\.%2f|\\.\\.%5c|%252e%252e)",
+      "level": "high",
+      "mitre": "T1005",
+      "description": "URL 中出现 ../ 及其 URL 编码变体，试图跳出网站根目录。"
+    },
+    {
+      "id": "TRAV-002",
+      "name": "路径遍历：读取系统敏感文件",
+      "category": "path_traversal",
+      "type": "path_pattern",
+      "pattern": "(etc/passwd|etc/shadow|boot\\.ini|win\\.ini|proc/self/environ|\\.ssh/id_rsa)",
+      "level": "high",
+      "mitre": "T1005",
+      "description": "目标为 Linux/Windows 系统敏感文件，穿越尝试的明确证据。"
+    },
+    {
+      "id": "SENS-001",
+      "name": "敏感路径探测",
+      "category": "sensitive_path",
+      "type": "path_keywords",
+      "pattern": [
+        ".git/",
+        ".env",
+        ".svn/",
+        "wp-login.php",
+        "phpmyadmin",
+        "phpinfo.php",
+        "backup.zip",
+        "database.sql",
+        "config.php.bak",
+        ".aws/credentials",
+        ".htaccess",
+        "server-status",
+        "actuator",
+        "/console"
+      ],
+      "level": "medium",
+      "mitre": "T1595",
+      "description": "批量探测 .git/.env/phpMyAdmin/备份文件等敏感资源，多为目录扫描器行为。"
+    },
+    {
+      "id": "CMDI-001",
+      "name": "命令注入",
+      "category": "command_injection",
+      "type": "path_pattern",
+      "pattern": "(\\|\\s*(cat|ls|id|whoami|nc|bash|sh|curl|wget)\\b|;\\s*(cat|ls|id|whoami|nc|bash|sh|curl|wget)\\b|\\$\\(|`[^`]+`)",
+      "level": "high",
+      "mitre": "T1059",
+      "description": "参数中拼接管道符、分号或命令替换，试图让服务器执行系统命令。"
+    },
+    {
+      "id": "XSS-001",
+      "name": "跨站脚本：脚本标签",
+      "category": "xss",
+      "type": "path_pattern",
+      "pattern": "(<script|%3cscript|javascript:|onerror\\s*=|onload\\s*=|alert\\s*\\()",
+      "level": "medium",
+      "mitre": "T1059.007",
+      "description": "URL 中出现 script 标签、事件处理器或 javascript: 伪协议，属于反射型 XSS 探测。"
+    },
+    {
+      "id": "LFI-001",
+      "name": "文件包含",
+      "category": "file_inclusion",
+      "type": "path_pattern",
+      "pattern": "(php://(filter|input)|file://|expect://|data:text/html|zip://)",
+      "level": "high",
+      "mitre": "T1005",
+      "description": "使用 php://filter 等伪协议读取/包含文件，常配合路径遍历使用。"
+    },
+    {
+      "id": "SHELL-001",
+      "name": "WebShell 路径探测",
+      "category": "webshell",
+      "type": "path_keywords",
+      "pattern": [
+        "/shell.php",
+        "/cmd.php",
+        "/backdoor",
+        "/webshell",
+        "/c99.php",
+        "/b374k",
+        "/upload.php"
+      ],
+      "level": "high",
+      "mitre": "T1505.003",
+      "description": "访问常见后门文件名，可能是攻击者尝试连接已上传的 WebShell。"
+    },
+    {
+      "id": "UA-001",
+      "name": "攻击工具 User-Agent",
+      "category": "bad_ua",
+      "type": "ua_keywords",
+      "pattern": [
+        "sqlmap",
+        "hydra",
+        "dirsearch",
+        "nikto",
+        "nmap",
+        "masscan",
+        "acunetix",
+        "nessus",
+        "wpscan",
+        "gobuster",
+        "ffuf",
+        "nuclei",
+        "zgrab",
+        "xray"
+      ],
+      "level": "high",
+      "mitre": "T1595",
+      "description": "User-Agent 自报为扫描/注入/爆破工具，正常浏览器不会出现。"
+    },
+    {
+      "id": "UA-002",
+      "name": "脚本或命令行 User-Agent",
+      "category": "bad_ua",
+      "type": "ua_keywords",
+      "pattern": [
+        "python-requests",
+        "curl/",
+        "wget/",
+        "go-http-client",
+        "libwww-perl",
+        "okhttp",
+        "java/"
+      ],
+      "level": "low",
+      "mitre": "T1595",
+      "description": "脚本/命令行客户端 UA，运维与爬虫也会使用，仅作低危提示，需结合访问频率判断。"
+    },
+    {
+      "id": "UA-003",
+      "name": "空 User-Agent",
+      "category": "bad_ua",
+      "type": "ua_empty",
+      "pattern": "",
+      "level": "medium",
+      "mitre": "T1595",
+      "description": "浏览器必带 UA，空 UA 多为自写脚本或特制工具，也可能来自部分代理/健康检查。"
+    }
+  ],
+  "thresholds": {
+    "high_freq_per_minute": 60,
+    "high_freq_min_requests": 20,
+    "error_rate_threshold": 0.6,
+    "error_min_requests": 30,
+    "scan_404_paths": 25,
+    "scan_min_404": 30,
+    "bruteforce_fails": 8,
+    "bruteforce_window_minutes": 15,
+    "login_path_keywords": [
+      "login",
+      "signin",
+      "auth",
+      "admin"
+    ],
+    "login_methods": [
+      "POST"
+    ],
+    "server_error_burst": 20,
+    "server_error_window_minutes": 5,
+    "max_events": 3000
+  }
+}
