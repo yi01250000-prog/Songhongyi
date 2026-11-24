@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="网站访问日志可视化分析工具：解析 Nginx / Apache 日志，统计访问趋势、来源分布与异常请求。">
+  <title>网站访问日志可视化分析工具</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230ea5e9'/%3E%3Cpath d='M8 10h16M8 16h10M8 22h13' stroke='white' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<div class="shell">
+  <!-- ============================ 顶栏 ============================ -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 3l7 3v5.2c0 4.6-3 8.2-7 9.8-4-1.6-7-5.2-7-9.8V6l7-3z"/>
+          <path d="M9 12.2l2 2 4-4.2"/>
+        </svg>
+      </div>
+      <div>
+        <h1>网站访问日志可视化分析工具</h1>
+        <p>Nginx / Apache Access Log Analyzer<span class="dot"></span>规则引擎 + 统计分析 + ECharts 可视化</p>
+      </div>
+    </div>
+
+    <div class="topbar-actions">
+      <label class="btn" for="fileInput" tabindex="0">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M7 9l5-5 5 5"/><path d="M4 20h16"/></svg>
+        上传日志
+        <input id="fileInput" type="file" accept=".log,.txt,.access,.out" hidden>
+      </label>
+      <button class="btn" id="demoBtn" type="button" title="重新分析内置演示日志">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 10-2.3 5.7"/><path d="M20 5v6h-6"/></svg>
+        演示数据
+      </button>
+      <button class="btn" id="rulesBtn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/><circle cx="18" cy="18" r="2.4"/></svg>
+        检测规则
+      </button>
+      <a class="btn btn-primary" id="exportBtn" href="/api/anomalies/export" title="按当前筛选条件导出异常明细">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12"/><path d="M7 11l5 5 5-5"/><path d="M4 20h16"/></svg>
+        导出 CSV
+      </a>
+      <button class="icon-btn" id="themeBtn" type="button" title="切换深色 / 浅色主题" aria-label="切换主题">
+        <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A8.5 8.5 0 1111.2 3a6.5 6.5 0 009.8 9.8z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <!-- ========================= 数据集信息 ========================= -->
+    <section class="dataset-bar" id="dropZone" aria-label="当前数据集">
+      <div class="file-info">
+        <div class="file-icon" aria-hidden="true">LOG</div>
+        <div>
+          <div class="file-name" id="fileName">正在加载日志数据…</div>
+          <div class="file-meta" id="fileMeta">—</div>
+        </div>
+      </div>
+      <div class="dataset-chips" id="datasetChips">
+        <span class="chip"><span class="dot"></span>解析中</span>
+      </div>
+    </section>
+
+    <!-- ============================ KPI ============================ -->
+    <section class="kpi-grid" id="kpiGrid" aria-label="核心指标">
+      <article class="kpi"><div class="kpi-label">总请求数</div><div class="kpi-value">—</div><div class="kpi-sub">加载中</div></article>
+      <article class="kpi"><div class="kpi-label">独立 IP</div><div class="kpi-value">—</div><div class="kpi-sub">加载中</div></article>
+      <article class="kpi"><div class="kpi-label">峰值 QPS</div><div class="kpi-value">—</div><div class="kpi-sub">加载中</div></article>
+      <article class="kpi"><div class="kpi-label">错误率</div><div class="kpi-value">—</div><div class="kpi-sub">加载中</div></article>
+      <article class="kpi"><div class="kpi-label">异常告警</div><div class="kpi-value">—</div><div class="kpi-sub">加载中</div></article>
+      <article class="kpi"><div class="kpi-label">高危告警</div><div class="kpi-value">—</div><div class="kpi-sub">加载中</div></article>
+    </section>
+
+    <!-- ============================ 图表 ============================ -->
+    <section class="charts-grid" aria-label="统计图表">
+      <article class="card chart-card span-8">
+        <div class="card-head">
+          <div>
+            <h2 class="card-title">访问量趋势</h2>
+            <p class="card-sub">Traffic Over Time</p>
+          </div>
+          <div class="card-hint">粒度：<b id="bucketLabel">—</b> · 可框选缩放</div>
+        </div>
+        <div id="trendChart" class="chart chart-lg" role="img" aria-label="访问量随时间变化的折线图"></div>
+      </article>
+
+      <article class="card chart-card span-4">
+        <div class="card-head">
+          <div>
+            <h2 class="card-title">状态码分布</h2>
+            <p class="card-sub">Status Codes</p>
+          </div>
+          <div class="card-hint">5xx 突增需重点关注</div>
+        </div>
+        <div id="statusChart" class="chart chart-lg" role="img" aria-label="HTTP 状态码分布饼图"></div>
+      </article>
+
+      <article class="card chart-card span-6">
+        <div class="card-head">
+          <div>
+            <h2 class="card-title">Top 10 访问 IP</h2>
+            <p class="card-sub">Top Client IP</p>
+          </div>
+          <div class="card-hint">按请求次数排序</div>
+        </div>
+        <div id="topIpChart" class="chart" role="img" aria-label="访问次数最多的 IP 横向柱状图"></div>
+      </article>
+
+      <article class="card chart-card span-6">
+        <div class="card-head">
+          <div>
+            <h2 class="card-title">Top 10 访问 URL</h2>
+            <p class="card-sub">Top Requested URL</p>
+          </div>
+          <div class="card-hint">已按路径聚合，忽略查询参数</div>
+        </div>
+        <div id="topUrlChart" class="chart" role="img" aria-label="访问次数最多的 URL 横向柱状图"></div>
+      </article>
+
+      <article class="card chart-card span-4">
+        <div class="card-head">
+          <div>
+            <h2 class="card-title">请求方法分布</h2>
+            <p class="card-sub">HTTP Methods</p>
+          </div>
+        </div>
+        <div id="methodChart" class="chart chart-sm" role="img" aria-label="HTTP 请求方法分布饼图"></div>
+      </article>
+
+      <article class="card chart-card span-4">
+        <div class="card-head">
+          <div>
+            <h2 class="card-title">异常等级分布</h2>
+            <p class="card-sub">Alert Severity</p>
+          </div>
+          <div class="card-hint">高危优先处置</div>
+        </div>
+        <div id="levelChart" class="chart chart-sm" role="img" aria-label="异常告警等级分布饼图"></div>
+      </article>
+
+      <article class="card chart-card span-4">
+        <div class="card-head">
+          <div>
+            <h2 class="card-title">异常类型分布</h2>
+            <p class="card-sub">Alert Category</p>
+          </div>
+          <div class="card-hint">对数坐标 · 按告警数排序</div>
+        </div>
+        <div id="categoryChart" class="chart chart-sm" role="img" aria-label="异常类型分布柱状图"></div>
+      </article>
+
+      <article class="card chart-card span-12">
+        <div class="card-head">
+          <div>
+            <h2 class="card-title">24 小时访问分布</h2>
+            <p class="card-sub">Hourly Traffic</p>
+          </div>
+          <div class="card-hint">观察业务高峰与异常时段</div>
+        </div>
+        <div id="hourlyChart" class="chart" role="img" aria-label="24 小时访问量柱状图"></div>
+      </article>
+    </section>
+
+    <!-- ========================= 异常明细表 ========================= -->
+    <section class="card table-card" id="anomalySection" aria-label="异常访问明细">
+      <div class="table-head">
+        <div>
+          <h2 class="card-title">异常访问明细<span class="count" id="tableCount">0</span></h2>
+          <p class="card-sub" style="margin-left:12px">Anomaly Detail · 点击行查看完整记录</p>
+        </div>
+        <div class="filters">
+          <select class="control" id="levelFilter" aria-label="按等级筛选">
+            <option value="">全部等级</option>
+            <option value="high">高危</option>
+            <option value="medium">中危</option>
+            <option value="low">低危</option>
+          </select>
+          <select class="control" id="sourceFilter" aria-label="按来源筛选">
+            <option value="">全部来源</option>
+            <option value="rule">规则命中</option>
+            <option value="statistic">统计检测</option>
+          </select>
+          <select class="control" id="categoryFilter" aria-label="按异常类型筛选">
+            <option value="">全部类型</option>
+          </select>
+          <div class="search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.2-4.2"/></svg>
+            <input class="control" id="keywordFilter" type="search" placeholder="搜索 IP / URL / 规则 / UA" aria-label="关键词搜索">
+          </div>
+          <button class="btn" id="resetFilters" type="button" style="height:34px">重置</button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>时间</th>
+              <th>等级</th>
+              <th>来源 IP</th>
+              <th>方法</th>
+              <th>请求 URL</th>
+              <th>状态码</th>
+              <th>命中规则</th>
+              <th>来源</th>
+              <th>User-Agent</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <tr><td colspan="9"><div class="empty">正在加载异常明细…</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-foot">
+        <div class="info" id="pageInfo">—</div>
+        <div class="pager">
+          <select class="control" id="pageSize" aria-label="每页条数">
+            <option value="20">20 条/页</option>
+            <option value="50">50 条/页</option>
+            <option value="100">100 条/页</option>
+          </select>
+          <button class="btn" id="prevPage" type="button" style="height:32px">上一页</button>
+          <button class="btn" id="nextPage" type="button" style="height:32px">下一页</button>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div>网站访问日志可视化分析工具 v{{ app_version }} · Flask + ECharts · 所有分析在本地完成，日志不会上传到第三方服务</div>
+      <div>规则配置：<code>config/rules.json</code> · 演示日志：<code>python scripts/generate_sample_log.py</code></div>
+    </footer>
+  </main>
+</div>
+
+<!-- ============================ 加载遮罩 ============================ -->
+<div class="overlay" id="loadingMask" aria-hidden="true">
+  <div class="overlay-box">
+    <div class="spinner"></div>
+    <div id="loadingText">正在解析日志并生成图表…</div>
+  </div>
+</div>
+
+<!-- ============================ 规则抽屉 ============================ -->
+<div class="modal-mask" id="drawerMask"></div>
+<aside class="drawer" id="rulesDrawer" aria-label="检测规则说明">
+  <div class="drawer-head">
+    <div>
+      <h2>检测规则与阈值</h2>
+      <p>规则外置于 <code>config/rules.json</code>，修改后点击“重新加载”即可生效</p>
+    </div>
+    <button class="icon-btn" id="closeDrawer" type="button" aria-label="关闭">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+  <div class="drawer-body" id="rulesBody">
+    <div class="empty">正在加载规则…</div>
+  </div>
+  <div class="drawer-foot" style="padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end">
+    <button class="btn" id="reloadRules" type="button">重新加载规则</button>
+    <button class="btn btn-primary" id="closeDrawer2" type="button">关闭</button>
+  </div>
+</aside>
+
+<!-- ============================ 详情弹窗 ============================ -->
+<div class="modal-mask" id="detailMask">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
+    <div class="modal-head">
+      <h3 id="detailTitle">异常详情</h3>
+      <button class="icon-btn" id="closeDetail" type="button" aria-label="关闭">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" id="detailBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="{{ url_for('static', filename='vendor/echarts.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>
