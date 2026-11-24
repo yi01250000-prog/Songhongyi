@@ -1,0 +1,20 @@
+{
+  "demo": {
+    "lines": 12013,
+    "parse_median_ms": 233.8,
+    "stats_median_ms": 80.8,
+    "detect_median_ms": 218.7,
+    "full_median_ms": 511.6,
+    "full_best_ms": 503.4,
+    "lines_per_second": 23479
+  },
+  "synthetic": {
+    "lines": 99982,
+    "file_mb": 21.66,
+    "generate_ms": 3747.5,
+    "parse_ms": 2102.19,
+    "full_ms": 4782.8,
+    "lines_per_second": 20904,
+    "events": 632
+  }
+}
